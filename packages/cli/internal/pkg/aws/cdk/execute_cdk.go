@@ -20,11 +20,11 @@ var progressRegex = regexp.MustCompile(`^\s*([0-9]+/[0-9]+)\s*\|(.*)`)
 
 var osRemoveAll = os.RemoveAll
 
-func executeCdkCommand(appDir string, commandArgs []string) (ProgressStream, error) {
-	return executeCdkCommandAndCleanupDirectory(appDir, commandArgs, "")
+func executeCdkCommand(appDir string, commandArgs []string, uniqueKey string) (ProgressStream, error) {
+	return executeCdkCommandAndCleanupDirectory(appDir, commandArgs, "", uniqueKey)
 }
 
-func executeCdkCommandAndCleanupDirectory(appDir string, commandArgs []string, tmpDir string) (ProgressStream, error) {
+func executeCdkCommandAndCleanupDirectory(appDir string, commandArgs []string, tmpDir string, uniqueKey string) (ProgressStream, error) {
 	log.Debug().Msgf("executeCDKCommand(%s, %v)", appDir, commandArgs)
 	cmdArgs := append([]string{"run", "cdk", "--"}, commandArgs...)
 	cmd := execCommand("npm", cmdArgs...)
@@ -42,7 +42,7 @@ func executeCdkCommandAndCleanupDirectory(appDir string, commandArgs []string, t
 		return nil, fmt.Errorf("couldn't execute CDK deploy command: %w", err)
 	}
 
-	progressChan, wait := processOutputs(bufio.NewScanner(stdout), bufio.NewScanner(stderr))
+	progressChan, wait := processOutputs(bufio.NewScanner(stdout), bufio.NewScanner(stderr), uniqueKey)
 
 	go func() {
 		wait.Wait()
@@ -62,11 +62,13 @@ func executeCdkCommandAndCleanupDirectory(appDir string, commandArgs []string, t
 	return progressChan, nil
 }
 
-func processOutputs(stdout *bufio.Scanner, stderr *bufio.Scanner) (chan ProgressEvent, *sync.WaitGroup) {
+func processOutputs(stdout *bufio.Scanner, stderr *bufio.Scanner, uniqueKey string) (chan ProgressEvent, *sync.WaitGroup) {
 	var wait sync.WaitGroup
 	wait.Add(2)
 	progressChan := make(chan ProgressEvent)
-	currentEvent := &ProgressEvent{}
+	currentEvent := &ProgressEvent{
+		UniqueKey: uniqueKey,
+	}
 	go func() {
 		defer wait.Done()
 		for stdout.Scan() {

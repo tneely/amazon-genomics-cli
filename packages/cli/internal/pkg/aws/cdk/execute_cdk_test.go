@@ -15,6 +15,7 @@ import (
 const (
 	testExecuteCommandSuccessArg   = "test-execute-command-success-arg"
 	testExecuteCommandFailureArg   = "test-execute-command-failure-arg"
+	testUniqueKey                  = "test-key"
 	testExecuteCommandProgressLine = "  3/10 |4:56:17 PM | CREATE_COMPLETE      | AWS::IAM::Policy               | TaskBatch/BatchRole/DefaultPolicy (TaskBatchBatchRoleDefaultPolicyB9AAE3A1)"
 )
 
@@ -35,7 +36,7 @@ func TestExecuteCdkCommand_Success(t *testing.T) {
 	osRemoveAll = mockOs.RemoveAll
 	mockOs.EXPECT().RemoveAll(gomock.Any()).Return(nil).Times(0)
 
-	progressStream, _ := executeCdkCommand(t.TempDir(), []string{testExecuteCommandSuccessArg})
+	progressStream, _ := executeCdkCommand(t.TempDir(), []string{testExecuteCommandSuccessArg}, testUniqueKey)
 	event1 := <-progressStream
 	assert.Equal(t, 3, event1.CurrentStep)
 	assert.Equal(t, 10, event1.TotalSteps)
@@ -54,7 +55,7 @@ func TestExecuteCdkCommandAndCleanupDirectory_Success(t *testing.T) {
 	osRemoveAll = mockOs.RemoveAll
 	mockOs.EXPECT().RemoveAll(tempDirectory).Return(nil).Times(1)
 
-	progressStream, _ := executeCdkCommandAndCleanupDirectory(t.TempDir(), []string{testExecuteCommandSuccessArg}, tempDirectory)
+	progressStream, _ := executeCdkCommandAndCleanupDirectory(t.TempDir(), []string{testExecuteCommandSuccessArg}, tempDirectory, testUniqueKey)
 	event1 := <-progressStream
 	assert.Equal(t, 3, event1.CurrentStep)
 	assert.Equal(t, 10, event1.TotalSteps)
@@ -72,7 +73,7 @@ func TestExecuteCdkCommand_Failure(t *testing.T) {
 	osRemoveAll = mockOs.RemoveAll
 	mockOs.EXPECT().RemoveAll(gomock.Any()).Return(nil).Times(0)
 
-	progressStream, _ := executeCdkCommand(t.TempDir(), []string{testExecuteCommandFailureArg})
+	progressStream, _ := executeCdkCommand(t.TempDir(), []string{testExecuteCommandFailureArg}, testUniqueKey)
 	event1 := <-progressStream
 	assert.Equal(t, testExecuteCommandFailureArg, event1.Outputs[0])
 	event2 := <-progressStream
