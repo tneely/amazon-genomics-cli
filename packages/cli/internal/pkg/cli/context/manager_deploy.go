@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	contextDeploymentTimeout = 30 * time.Second
+	contextDeploymentTimeout = 30 * time.Minute
 )
 
 func (m *Manager) Deploy(contextName string, showProgress bool) error {
