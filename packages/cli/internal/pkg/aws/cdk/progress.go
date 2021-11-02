@@ -2,7 +2,6 @@ package cdk
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
@@ -12,7 +11,6 @@ import (
 var (
 	sleep                                   = time.Sleep
 	progressTemplate pb.ProgressBarTemplate = `{{ string . "description" }} {{ bar . }}{{ etime . }}`
-	mu = &sync.Mutex{}
 )
 
 type ProgressStream chan ProgressEvent
@@ -35,7 +33,7 @@ func (p ProgressStream) DisplayProgress(description string, timedOut <-chan bool
 		case <-timedOut:
 			return nil
 		default:
-			continue
+			// nothing to do
 		}
 		barReceiver <- event
 		if event.Err != nil {

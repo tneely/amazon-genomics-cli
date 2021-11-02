@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	contextDeploymentTimeout = 30 * time.Minute
+	contextDeploymentTimeout = 30 * time.Second
 )
 
 func (m *Manager) Deploy(contextName string, showProgress bool) error {
@@ -50,8 +50,11 @@ func (m *Manager) deployContextWithTimeout(contextName string, showProgress bool
 		// signal that context has been timedout for printing
 		timeoutChannel <- true
 		// rollback context
-		m.Destroy(contextName, showProgress)
+		err := m.Destroy(contextName, showProgress)
 		m.err = errors.New("context deployment timeout. deployment rolled back")
+		if err != nil {
+			m.err = err
+		}
 	}
 }
 
