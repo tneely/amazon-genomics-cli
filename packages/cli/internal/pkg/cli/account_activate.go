@@ -137,7 +137,7 @@ func (o accountActivateOpts) deployCoreInfrastructure(environmentVars []string) 
 			lastEvent = event
 		}
 	} else {
-		return progressStream.DisplayProgress("Activating account...")
+		return progressStream.DisplayProgress("Activating account...", make(chan bool))
 	}
 	return nil
 }

@@ -34,5 +34,5 @@ func (m *Manager) destroyContext(contextName string, showProgress bool) {
 		return m.Cdk.DestroyApp(filepath.Join(m.homeDir, cdkAppsDirBase, contextDir), m.contextEnv.ToEnvironmentList())
 	}
 	description := fmt.Sprintf("Destroying resources for context '%s'...", contextName)
-	m.executeCdkHelper(contextCmd, description, showProgress)
+	m.executeCdkHelper(contextCmd, description, showProgress, make(chan bool))
 }

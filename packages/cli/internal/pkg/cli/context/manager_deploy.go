@@ -1,12 +1,18 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/aws/amazon-genomics-cli/internal/pkg/aws/cdk"
 	"github.com/aws/amazon-genomics-cli/internal/pkg/logging"
 	"github.com/rs/zerolog/log"
+)
+
+const (
+	contextDeploymentTimeout = 30 * time.Minute
 )
 
 func (m *Manager) Deploy(contextName string, showProgress bool) error {
@@ -20,7 +26,7 @@ func (m *Manager) Deploy(contextName string, showProgress bool) error {
 	m.setTaskContext(contextName)
 	m.clearCdkContext(contextDir)
 	m.setContextEnv(contextName)
-	m.deployContext(contextName, showProgress)
+	m.deployContextWithTimeout(contextName, showProgress)
 	return m.err
 }
 
@@ -31,15 +37,34 @@ func (m *Manager) clearCdkContext(appDir string) {
 	m.err = m.Cdk.ClearContext(filepath.Join(m.homeDir, cdkAppsDirBase, appDir))
 }
 
-func (m *Manager) deployContext(contextName string, showProgress bool) {
+func (m *Manager) deployContextWithTimeout(contextName string, showProgress bool) {
+	// channel to mark when a deployment successfully completes
+	completionChannel := make(chan bool)
+	// channel to reflect whether a deployment has timedout
+	timeoutChannel := make(chan bool)
+	go m.deployContext(contextName, showProgress, completionChannel, timeoutChannel)
+	select {
+	case <-completionChannel:
+		return
+	case <-time.After(contextDeploymentTimeout):
+		// signal that context has been timedout for printing
+		timeoutChannel <- true
+		// rollback context
+		m.Destroy(contextName, showProgress)
+		m.err = errors.New("context deployment timeout. deployment rolled back")
+	}
+}
+
+func (m *Manager) deployContext(contextName string, showProgress bool, completionPipe chan<- bool, timeoutChannel <-chan bool) {
 	contextCmd := func() (cdk.ProgressStream, error) {
 		return m.Cdk.DeployApp(filepath.Join(m.homeDir, cdkAppsDirBase, contextDir), m.contextEnv.ToEnvironmentList())
 	}
 	description := fmt.Sprintf("Deploying resources for context '%s'...", contextName)
-	m.executeCdkHelper(contextCmd, description, showProgress)
+	m.executeCdkHelper(contextCmd, description, showProgress, timeoutChannel)
+	completionPipe <- true
 }
 
-func (m *Manager) executeCdkHelper(cmd func() (cdk.ProgressStream, error), description string, showProgress bool) {
+func (m *Manager) executeCdkHelper(cmd func() (cdk.ProgressStream, error), description string, showProgress bool, timeoutChannel <-chan bool) {
 	if m.err != nil {
 		return
 	}
@@ -61,6 +86,6 @@ func (m *Manager) executeCdkHelper(cmd func() (cdk.ProgressStream, error), descr
 			lastEvent = event
 		}
 	} else {
-		m.err = progressStream.DisplayProgress(description)
+		m.err = progressStream.DisplayProgress(description, timeoutChannel)
 	}
 }

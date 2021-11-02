@@ -2,6 +2,7 @@ package cdk
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/cheggaaa/pb/v3"
@@ -11,6 +12,7 @@ import (
 var (
 	sleep                                   = time.Sleep
 	progressTemplate pb.ProgressBarTemplate = `{{ string . "description" }} {{ bar . }}{{ etime . }}`
+	mu = &sync.Mutex{}
 )
 
 type ProgressStream chan ProgressEvent
@@ -23,12 +25,18 @@ type ProgressEvent struct {
 	Err             error
 }
 
-func (p ProgressStream) DisplayProgress(description string) error {
+func (p ProgressStream) DisplayProgress(description string, timedOut <-chan bool) error {
 	var lastEvent ProgressEvent
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	barReceiver := runProgressBar(ctx, description)
 	for event := range p {
+		select {
+		case <-timedOut:
+			return nil
+		default:
+			continue
+		}
 		barReceiver <- event
 		if event.Err != nil {
 			for _, line := range lastEvent.Outputs {
