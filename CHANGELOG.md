@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/tneely/amazon-genomics-cli/compare/v1.3.0...v1.4.0) (2021-11-12)
+
 ## [1.3.0](https://codestar-connections.us-west-2.amazonaws.com/git-http/477926353053/us-west-2/05769be1-e7fd-4139-8f3d-fc70960d3db6/tneely/amazon-genomics-cli/compare/v1.2.0...v1.3.0) (2021-11-12)
 
 
